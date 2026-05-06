@@ -36,7 +36,7 @@ jobs:
 
       - name: Build for GitHub Pages
         working-directory: bill-generator-ui
-        run: npx ng build --configuration=production --base-href "/Bill-Generator/"
+        run: npx ng build --configuration=production --base-href "/"
 
       - name: Add 404.html for client-side routing
         run: cp bill-generator-ui/dist/bill-generator-ui/browser/index.html bill-generator-ui/dist/bill-generator-ui/browser/404.html
