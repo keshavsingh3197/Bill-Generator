@@ -1,0 +1,17 @@
+## Artifacts / build output
+BillGenerator/bin/
+BillGenerator/obj/
+BillGenerator/CustomTemplates/
+
+## OS
+.DS_Store
+Thumbs.db
+
+## IDE
+.vs/
+*.user
+*.suo
+.vscode/
+
+## Fonts (large binary – exclude from VCS)
+Fonts/
