@@ -2,11 +2,12 @@ name: Build & Test API
 
 on:
   push:
-    branches: [main, copilot/create-april-2026-bill-receipts]
+    branches: [main, master]
     paths:
       - 'BillGeneratorApi/**'
       - '.github/workflows/build-api.yml'
   pull_request:
+    branches: [main, master]
     paths:
       - 'BillGeneratorApi/**'
 
