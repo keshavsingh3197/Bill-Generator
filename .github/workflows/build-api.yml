@@ -1,0 +1,48 @@
+name: Build & Test API
+
+on:
+  push:
+    branches: [main, copilot/create-april-2026-bill-receipts]
+    paths:
+      - 'BillGeneratorApi/**'
+      - '.github/workflows/build-api.yml'
+  pull_request:
+    paths:
+      - 'BillGeneratorApi/**'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build API
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore
+        run: dotnet restore BillGeneratorApi/BillGeneratorApi.csproj
+
+      - name: Build
+        run: dotnet build BillGeneratorApi/BillGeneratorApi.csproj --configuration Release --no-restore
+
+      - name: Publish
+        run: dotnet publish BillGeneratorApi/BillGeneratorApi.csproj -c Release -o /tmp/api-publish
+
+  docker:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -f BillGeneratorApi/Dockerfile -t bill-generator-api:latest .

@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: bill-generator-api
+    env: docker
+    dockerfilePath: ./BillGeneratorApi/Dockerfile
+    dockerContext: .
+    plan: free
+    envVars:
+      - key: ASPNETCORE_URLS
+        value: http://0.0.0.0:8080
+      - key: OPENAI_API_KEY
+        sync: false   # set this in the Render dashboard
