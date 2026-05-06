@@ -1,4 +1,138 @@
-# Bill-Generator
+# Bill Generator
+
+A full-stack bill receipt generator for an Indian street-food restaurant.
+
+| Layer | Technology | Deployment |
+|-------|-----------|------------|
+| Frontend | Angular 19 + Angular Material | GitHub Pages |
+| Backend | ASP.NET Core 10 Web API | Render.com (Docker) |
+| PDF engine | iText7 | (bundled) |
+| AI | OpenAI gpt-4o-mini | (optional) |
+
+---
+
+## Live
+
+| | URL |
+|--|-----|
+| Frontend | `https://keshavsingh3197.github.io/Bill-Generator/` |
+| API | `https://bill-generator-api.onrender.com` |
+
+---
+
+## Architecture
+
+```
+Bill-Generator/
+├── BillGenerator/          ← Original CLI console app
+├── BillGeneratorApi/       ← ASP.NET Core Web API (REST backend)
+│   ├── Controllers/        ← Templates, Bills, Catalogue, AI
+│   ├── Models/             ← Shared models
+│   ├── Services/           ← PDF, Template, AI, Catalogue services
+│   ├── Dockerfile          ← Container image for Render
+│   └── Program.cs          ← CORS + DI setup
+├── bill-generator-ui/      ← Angular 19 frontend
+│   └── src/app/
+│       ├── pages/          ← Home, Generate, Templates, AI Assistant
+│       ├── services/       ← ApiService (HTTP client)
+│       └── models/         ← TypeScript interfaces
+├── render.yaml             ← Render.com deployment config
+└── .github/workflows/
+    ├── deploy-frontend.yml ← CI/CD → GitHub Pages
+    └── build-api.yml       ← CI: build + Docker test
+```
+
+---
+
+## API Endpoints
+
+| Method | URL | Description |
+|--------|-----|-------------|
+| GET | `/api/templates` | List all templates |
+| GET | `/api/templates/{name}` | Get one template |
+| POST | `/api/templates` | Create custom template |
+| DELETE | `/api/templates/{name}` | Delete custom template |
+| POST | `/api/templates/{name}/clone` | Clone a template |
+| GET | `/api/catalogue` | Full menu catalogue |
+| POST | `/api/bills/generate` | Generate PDF (returns file) |
+| POST | `/api/bills/generate-range` | Generate date-range batch |
+| GET | `/api/ai/status` | AI availability |
+| POST | `/api/ai/suggest-items` | AI item suggestion |
+| POST | `/api/ai/generate-template` | AI template creation |
+
+---
+
+## Features
+
+### 4 Built-in Templates
+
+| Name | Style |
+|------|-------|
+| **Classic** | Original mono-spaced, `-` dividers |
+| **Modern** | `=` double dividers, tagline |
+| **Minimal** | Compact, no extra sections |
+| **Elegant** | Boxed header, `*` dividers |
+
+### Custom Templates
+Create, clone, and edit templates from the UI. Full control over shop info, page size, fonts, dividers, and which sections to show.
+
+### AI Features (requires `OPENAI_API_KEY`)
+- **Item Suggestion**: describe an order → AI picks items and quantities
+- **Template Generation**: describe a style → AI creates a full template
+
+---
+
+## Local Development
+
+### Backend
+```bash
+cd BillGeneratorApi
+dotnet run
+# API available at http://localhost:5000
+```
+
+### Frontend
+```bash
+cd bill-generator-ui
+npm install
+ng serve
+# App available at http://localhost:4200
+```
+
+### AI Features
+```bash
+export OPENAI_API_KEY=sk-...  # before running the backend
+```
+
+---
+
+## Deployment
+
+### Frontend → GitHub Pages
+
+The GitHub Actions workflow `.github/workflows/deploy-frontend.yml` automatically builds and deploys the Angular app to GitHub Pages on every push to `main`.
+
+Enable GitHub Pages in the repository settings:
+- Source: **GitHub Actions**
+
+### Backend → Render.com
+
+1. Create a free account at [render.com](https://render.com)
+2. Connect the repository
+3. Create a new **Web Service** using the `render.yaml` configuration
+4. Set the `OPENAI_API_KEY` environment variable in the Render dashboard (optional)
+5. After deployment, copy the Render service URL and update `bill-generator-ui/src/environments/environment.prod.ts`
+
+---
+
+## CLI App
+
+The original console application is preserved in `BillGenerator/`:
+```bash
+cd BillGenerator
+dotnet run
+```
+
 
 A .NET 10 console application that generates PDF receipts for an Indian street-food restaurant. Supports **predefined templates**, **custom user-defined templates**, and **AI-assisted item selection & template creation**.
 

@@ -2,6 +2,13 @@
 BillGenerator/bin/
 BillGenerator/obj/
 BillGenerator/CustomTemplates/
+BillGeneratorApi/bin/
+BillGeneratorApi/obj/
+
+## Angular
+bill-generator-ui/node_modules/
+bill-generator-ui/dist/
+bill-generator-ui/.angular/
 
 ## OS
 .DS_Store

@@ -1,0 +1,6 @@
+@BillGeneratorApi_HostAddress = http://localhost:5190
+
+GET {{BillGeneratorApi_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
