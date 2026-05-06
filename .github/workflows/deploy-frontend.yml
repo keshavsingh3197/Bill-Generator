@@ -2,10 +2,14 @@ name: Deploy Angular to GitHub Pages
 
 on:
   push:
-    branches: [main, copilot/create-april-2026-bill-receipts]
+    branches: [main, master]
     paths:
       - 'bill-generator-ui/**'
       - '.github/workflows/deploy-frontend.yml'
+  pull_request:
+    branches: [main, master]
+    paths:
+      - 'bill-generator-ui/**'
   workflow_dispatch:
 
 permissions:
