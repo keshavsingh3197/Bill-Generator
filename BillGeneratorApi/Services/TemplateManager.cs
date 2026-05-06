@@ -71,8 +71,10 @@ public class TemplateManager
             throw new InvalidOperationException("Cannot overwrite a built-in template.");
 
         string path = TemplatePath(template.Name);
+        if (!IsPathInsideCustomDir(path))
+            throw new InvalidOperationException("Template name results in an invalid file path.");
+
         File.WriteAllText(path, JsonSerializer.Serialize(template, JsonOpts));
-        Console.WriteLine($"Template '{template.Name}' saved → {path}");
     }
 
     /// <summary>Exports a built-in template to disk as a starting point for customisation.</summary>
@@ -88,6 +90,9 @@ public class TemplateManager
     public bool Delete(string name)
     {
         string path = TemplatePath(name);
+        // Verify the resolved path is still within the custom templates directory
+        // to prevent path traversal.
+        if (!IsPathInsideCustomDir(path)) return false;
         if (!File.Exists(path)) return false;
         File.Delete(path);
         return true;
@@ -103,6 +108,17 @@ public class TemplateManager
 
     private string TemplatePath(string name) =>
         Path.Combine(_customDir, $"{SanitizeName(name)}.json");
+
+    /// <summary>
+    /// Ensures the resolved path is physically inside _customDir to prevent
+    /// path-traversal attacks where an attacker supplies e.g. "../../etc/passwd".
+    /// </summary>
+    private bool IsPathInsideCustomDir(string path)
+    {
+        string fullPath = Path.GetFullPath(path);
+        string fullDir  = Path.GetFullPath(_customDir) + Path.DirectorySeparatorChar;
+        return fullPath.StartsWith(fullDir, StringComparison.OrdinalIgnoreCase);
+    }
 
     private static string SanitizeName(string name) =>
         string.Concat(name.Split(Path.GetInvalidFileNameChars()));
