@@ -102,9 +102,9 @@ public class TemplateManager
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private string TemplatePath(string name) =>
-        Path.Combine(_customDir, $"{SanitiseName(name)}.json");
+        Path.Combine(_customDir, $"{SanitizeName(name)}.json");
 
-    private static string SanitiseName(string name) =>
+    private static string SanitizeName(string name) =>
         string.Concat(name.Split(Path.GetInvalidFileNameChars()));
 
     private static BillTemplate Clone(BillTemplate t) =>

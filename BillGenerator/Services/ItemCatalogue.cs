@@ -91,6 +91,11 @@ public static class ItemCatalogue
 
     // ── Business day filter ───────────────────────────────────────────────────
 
+    /// <summary>
+    /// Returns <c>true</c> for days the shop is open.
+    /// This particular shop is closed on Saturdays, Sundays, Tuesdays, and
+    /// Thursdays (per the owner's operating schedule).
+    /// </summary>
     public static bool IsIndianBusinessDay(DateTime date) =>
         date.DayOfWeek is not (DayOfWeek.Saturday or DayOfWeek.Sunday
             or DayOfWeek.Tuesday or DayOfWeek.Thursday);
