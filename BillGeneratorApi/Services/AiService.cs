@@ -29,7 +29,7 @@ public class AiService
     private static readonly Regex SnackIntentRegex = new(@"\b(snack|snacks|starter|starters|chaat)\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
     private static readonly Regex MainIntentRegex = new(@"\b(main|maincourse|curry|curries|roti|naan|rice|biryani|dal|paneer)\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
     private static readonly char[] TokenDelimiters =
-        [' ', '\t', '\r', '\n', ',', '.', ';', ':', '!', '?', '-', '_', '/', '\\', '|'];
+        new[] { ' ', '\t', '\r', '\n', ',', '.', ';', ':', '!', '?', '-', '_', '/', '\\', '|' };
     private static readonly Dictionary<string, int> NumberWords = new(StringComparer.OrdinalIgnoreCase)
     {
         ["one"] = 1, ["two"] = 2, ["three"] = 3, ["four"] = 4, ["five"] = 5,
