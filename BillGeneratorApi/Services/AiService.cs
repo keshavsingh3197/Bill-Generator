@@ -25,7 +25,9 @@ public class AiService
 {
     private readonly ChatClient? _client;
     private readonly string? _provider;
-    private static readonly Regex RequestedItemCountRegex = new(@"\b(?<count>10|[1-9])\b", RegexOptions.Compiled);
+    private static readonly Regex RequestedItemCountRegex = new(@"\b(?<count>\d+)\b", RegexOptions.Compiled);
+    private static readonly char[] TokenDelimiters =
+        [' ', '\t', '\r', '\n', ',', '.', ';', ':', '!', '?', '-', '_', '/', '\\', '|'];
     private static readonly Dictionary<string, int> NumberWords = new(StringComparer.OrdinalIgnoreCase)
     {
         ["one"] = 1, ["two"] = 2, ["three"] = 3, ["four"] = 4, ["five"] = 5,
@@ -279,12 +281,10 @@ public class AiService
             return null;
 
         var digitMatch = RequestedItemCountRegex.Match(userRequest);
-        if (digitMatch.Success && int.TryParse(digitMatch.Groups["count"].Value, out int parsed))
+        if (digitMatch.Success && int.TryParse(digitMatch.Groups["count"].Value, out int parsed) && parsed > 0)
             return parsed;
 
-        var tokens = userRequest.Split(
-            [' ', '\t', '\r', '\n', ',', '.', ';', ':', '!', '?', '-', '_', '/', '\\', '|'],
-            StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var tokens = userRequest.Split(TokenDelimiters, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
         foreach (var token in tokens)
         {
