@@ -41,7 +41,7 @@ public class BillsController : ControllerBase
 
     /// <summary>
     /// POST /api/bills/generate-range
-    /// Returns a zip with one PDF per business day in the range.
+    /// Returns one PDF result per day in the range.
     /// </summary>
     [HttpPost("generate-range")]
     public IActionResult GenerateRange([FromBody] GenerateRangeRequest req)
@@ -53,8 +53,6 @@ public class BillsController : ControllerBase
 
         for (DateTime d = req.StartDate; d <= req.EndDate; d = d.AddDays(1))
         {
-            if (!ItemCatalogue.IsIndianBusinessDay(d)) continue;
-
             var items = ItemCatalogue.BuildForDate(d);
             var billTime = ItemCatalogue.EveningTimeForDate(d);
             var pdfBytes = GeneratePdfBytes(items, d, billTime, "", template);

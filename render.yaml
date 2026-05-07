@@ -10,3 +10,11 @@ services:
         value: http://0.0.0.0:8080
       - key: OPENAI_API_KEY
         sync: false   # set this in the Render dashboard
+      - key: MONGODB_CONNECTION_STRING
+        sync: false   # optional: enables MongoDB-backed custom templates
+      - key: MONGODB_DATABASE
+        value: BillGenerator
+      - key: MONGODB_TEMPLATES_COLLECTION
+        value: templates
+      - key: NOTO_SANS_MONO_DIR
+        sync: false   # optional custom path to NotoSansMono-Regular/Bold.ttf

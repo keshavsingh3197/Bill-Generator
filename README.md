@@ -55,7 +55,7 @@ Bill-Generator/
 | POST | `/api/templates/{name}/clone` | Clone a template |
 | GET | `/api/catalogue` | Full menu catalogue |
 | POST | `/api/bills/generate` | Generate PDF (returns file) |
-| POST | `/api/bills/generate-range` | Generate date-range batch |
+| POST | `/api/bills/generate-range` | Generate one bill for every day in a date range |
 | GET | `/api/ai/status` | AI availability |
 | POST | `/api/ai/suggest-items` | AI item suggestion |
 | POST | `/api/ai/generate-template` | AI template creation |
@@ -104,6 +104,13 @@ ng serve
 export OPENAI_API_KEY=sk-...  # before running the backend
 ```
 
+### MongoDB (optional, for dynamic custom templates)
+```bash
+export MONGODB_CONNECTION_STRING="mongodb+srv://..."
+export MONGODB_DATABASE="BillGenerator"
+export MONGODB_TEMPLATES_COLLECTION="templates"
+```
+
 ---
 
 ## Deployment
@@ -120,7 +127,9 @@ Enable GitHub Pages in the repository settings:
 1. Create a free account at [render.com](https://render.com)
 2. Connect the repository
 3. Create a new **Web Service** using the `render.yaml` configuration
-4. Set the `OPENAI_API_KEY` environment variable in the Render dashboard (optional)
+4. Set optional environment variables in the Render dashboard:
+   - `OPENAI_API_KEY` for AI features
+   - `MONGODB_CONNECTION_STRING` and `MONGODB_DATABASE` for MongoDB-backed custom templates
 5. After deployment, copy the Render service URL and update `bill-generator-ui/src/environments/environment.prod.ts`
 
 ---
@@ -146,7 +155,7 @@ A .NET 10 console application that generates PDF receipts for an Indian street-f
 | **Custom templates** | Create interactively or by cloning a built-in; stored as JSON |
 | **AI item selection** | Describe an order in plain English → GPT picks items & quantities |
 | **AI template generation** | Describe a visual style → GPT generates a full `BillTemplate` JSON |
-| **Batch generation** | Generate bills for any date range (skips non-business days) |
+| **Batch generation** | Generate bills for all days in any date range |
 | **Single bill** | Interactive wizard – choose template, date, time, cashier, items |
 
 ---
@@ -182,7 +191,7 @@ The interactive menu guides you through all features.
 
 ### Custom templates
 
-Custom templates are stored as JSON files inside `CustomTemplates/` (next to the executable). You can:
+Custom templates are stored in MongoDB when `MONGODB_CONNECTION_STRING` is set. If MongoDB is not configured, they fall back to JSON files in `CustomTemplates/` (next to the executable). You can:
 
 1. **Create manually** via the Template Manager menu.
 2. **Clone a built-in** and edit the resulting JSON file.
@@ -221,7 +230,19 @@ BillGenerator/
 
 ## Fonts
 
-The PDF generator auto-detects bundled **NotoSansMono** fonts (Regular + Bold). If not found, it falls back to the built-in Courier font. To use NotoSansMono, place the `.ttf` files at:
+The PDF generator prefers **NotoSansMono** (for proper ₹ rendering). It auto-detects:
+- bundled project fonts, or
+- Linux system Noto fonts (installed in the Docker image), or
+- a custom path from `NOTO_SANS_MONO_DIR`.
+
+If none are available, it falls back to Courier.
+
+You can override the auto-detected font location with:
+```bash
+export NOTO_SANS_MONO_DIR="/path/to/font/folder"
+```
+
+To bundle NotoSansMono manually, place the `.ttf` files at:
 
 ```
 Fonts/noto-sans-mono/static/NotoSansMono/NotoSansMono-Regular.ttf
