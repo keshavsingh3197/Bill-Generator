@@ -24,8 +24,13 @@ public class AiController : ControllerBase
     [HttpPost("suggest-items")]
     public async Task<IActionResult> SuggestItems([FromBody] AiItemRequest req)
     {
-        var items = await _ai.SuggestItemsAsync(req.Request, ItemCatalogue.All);
-        return Ok(items);
+        var result = await _ai.SuggestItemsAsync(req.Request, ItemCatalogue.All);
+        return Ok(new
+        {
+            items = result.Items,
+            source = result.Source,
+            note = result.Note
+        });
     }
 
     /// <summary>

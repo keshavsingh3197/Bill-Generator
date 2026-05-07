@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 import {
+  AiSuggestItemsResponse,
   BillTemplate,
   BillRangeResult,
   GenerateBillRequest,
@@ -61,8 +62,8 @@ export class ApiService {
     return this.http.get<{ available: boolean; provider?: string }>(`${this.base}/api/ai/status`);
   }
 
-  aiSuggestItems(request: string): Observable<Item[]> {
-    return this.http.post<Item[]>(`${this.base}/api/ai/suggest-items`, { request });
+  aiSuggestItems(request: string): Observable<AiSuggestItemsResponse> {
+    return this.http.post<AiSuggestItemsResponse>(`${this.base}/api/ai/suggest-items`, { request });
   }
 
   aiGenerateTemplate(name: string, styleDescription: string): Observable<BillTemplate> {

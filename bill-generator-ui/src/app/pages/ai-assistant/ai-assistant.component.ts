@@ -86,9 +86,15 @@ import { Item, BillTemplate } from '../../models/models';
 
                 <div *ngIf="suggestedItems.length" class="results">
                   <mat-divider></mat-divider>
-                  <h3 class="results-title">
-                    <mat-icon>check_circle</mat-icon> Suggested Items ({{suggestedItems.length}})
-                  </h3>
+                  <div class="results-title-row">
+                    <h3 class="results-title">
+                      <mat-icon>check_circle</mat-icon> Suggested Items ({{suggestedItems.length}})
+                    </h3>
+                    <span *ngIf="suggestionSource" class="source-badge" [class.badge-ai]="suggestionSource === 'ai'" [class.badge-fallback]="suggestionSource === 'fallback'" [title]="suggestionNote || ''">
+                      <mat-icon>{{ suggestionSource === 'ai' ? 'auto_awesome' : 'shuffle' }}</mat-icon>
+                      {{ suggestionSource === 'ai' ? 'AI-selected' : 'Auto-selected' }}
+                    </span>
+                  </div>
                   <div class="results-table-wrap">
                     <table mat-table [dataSource]="suggestedItems" class="items-table">
                       <ng-container matColumnDef="name">
@@ -275,6 +281,13 @@ import { Item, BillTemplate } from '../../models/models';
 
     /* Results */
     .results { margin-top: 20px; }
+    .results-title-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin: 16px 0 12px;
+    }
     .results-title {
       display: flex;
       align-items: center;
@@ -282,9 +295,18 @@ import { Item, BillTemplate } from '../../models/models';
       font-size: 1rem;
       font-weight: 600;
       color: #1e293b;
-      margin: 16px 0 12px;
+      margin: 0;
     }
     .results-title mat-icon { color: #10b981; font-size: 20px; height: 20px; width: 20px; }
+
+    .source-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 3px 10px; border-radius: 20px;
+      font-size: 0.78rem; font-weight: 600; cursor: default;
+    }
+    .source-badge mat-icon { font-size: 15px; height: 15px; width: 15px; }
+    .badge-ai       { background: #ede9fe; color: #5b21b6; border: 1px solid #c4b5fd; }
+    .badge-fallback { background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
 
     .results-table-wrap { overflow-x: auto; border-radius: 8px; border: 1px solid #e2e8f0; }
     .items-table { width: 100%; }
@@ -337,6 +359,8 @@ export class AiAssistantComponent implements OnInit {
   suggestedItems: Item[] = [];
   suggestedTotal = 0;
   suggestingItems = false;
+  suggestionSource: 'ai' | 'fallback' | null = null;
+  suggestionNote: string | null = null;
   itemCols = ['name', 'qty', 'price', 'amount'];
 
   templateName = '';
@@ -358,10 +382,16 @@ export class AiAssistantComponent implements OnInit {
   suggestItems() {
     this.suggestingItems = true;
     this.api.aiSuggestItems(this.itemRequest).subscribe({
-      next: items => {
+      next: response => {
+        const items = response.items ?? [];
         this.suggestingItems = false;
         this.suggestedItems = items;
         this.suggestedTotal = items.reduce((s, i) => s + i.quantity * i.price, 0);
+        this.suggestionSource = response.source;
+        this.suggestionNote = response.note ?? null;
+        if (response.source === 'fallback' && response.note) {
+          this.snack.open(response.note, 'OK', { duration: 3500 });
+        }
       },
       error: () => {
         this.suggestingItems = false;
