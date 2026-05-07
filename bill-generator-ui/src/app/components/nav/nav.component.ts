@@ -37,7 +37,7 @@ import { CommonModule } from '@angular/common';
       </nav>
 
       <!-- Mobile Menu Toggle -->
-      <button mat-icon-button class="mobile-menu-btn" (click)="menuOpen = !menuOpen" aria-label="Menu">
+      <button mat-icon-button class="mobile-menu-btn" (click)="menuOpen = !menuOpen; $event.stopPropagation()" aria-label="Menu">
         <mat-icon>{{ menuOpen ? 'close' : 'menu' }}</mat-icon>
       </button>
     </mat-toolbar>

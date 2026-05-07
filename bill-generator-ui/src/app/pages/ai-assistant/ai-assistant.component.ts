@@ -356,7 +356,6 @@ export class AiAssistantComponent implements OnInit {
   }
 
   suggestItems() {
-    if (!this.itemRequest.trim()) return;
     this.suggestingItems = true;
     this.api.aiSuggestItems(this.itemRequest).subscribe({
       next: items => {
