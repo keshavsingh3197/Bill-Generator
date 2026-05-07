@@ -57,8 +57,10 @@ public class TemplateManager
     {
         if (_templateCollection is not null)
         {
-            var docs = _templateCollection.Find(_ => true).ToList();
-            return docs.Select(ToTemplate).ToList();
+            return _templateCollection.Find(_ => true)
+                .ToEnumerable()
+                .Select(ToTemplate)
+                .ToList();
         }
 
         var result = new List<BillTemplate>();
