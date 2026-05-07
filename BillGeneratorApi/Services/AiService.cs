@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
 using System.ClientModel;
 using BillGeneratorApi.Models;
 using OpenAI;
@@ -73,23 +74,30 @@ public class AiService
     public async Task<List<Item>> SuggestItemsAsync(
         string userRequest, IEnumerable<Item> catalogue)
     {
+        int? requestedItemCount = TryExtractRequestedItemCount(userRequest);
+
         if (_client is null)
         {
             Console.WriteLine("[AI] No API key – using random item selection.");
-            return FallbackRandomItems(catalogue);
+            return FallbackRandomItems(catalogue, requestedItemCount);
         }
 
         var catalogueList = catalogue.ToList();
         string catalogueJson = JsonSerializer.Serialize(
             catalogueList.Select(i => new { i.Name, i.Price }), JsonOpts);
 
+        string countInstruction = requestedItemCount is int count
+            ? $"select exactly {count} unique items and assign realistic quantities (1-5 each)."
+            : "select 6-10 unique items and assign realistic quantities (1-5 each).";
+
         string systemPrompt = """
             You are a helpful assistant for an Indian street-food restaurant billing system.
             Given a JSON catalogue of menu items (name + price) and a user request,
-            select 6-10 items and assign realistic quantities (1-5 each).
+            """ + countInstruction + """
             Return ONLY a valid JSON array in this exact shape, no explanation:
             [{"name":"<item name>","quantity":<int>,"price":<double>}, ...]
             The item names MUST match exactly from the catalogue.
+            Do not repeat the same item name.
             """;
 
         string userMessage = $"Catalogue:\n{catalogueJson}\n\nRequest: {userRequest}";
@@ -118,6 +126,8 @@ public class AiService
                     result.Add(new Item(match.Name, Math.Max(1, dto.Quantity), match.Price));
             }
 
+            result = EnforceRequestedItemCount(result, catalogueList, requestedItemCount);
+
             if (result.Count > 0)
                 return result;
         }
@@ -126,7 +136,7 @@ public class AiService
             Console.WriteLine($"[AI] Item suggestion error: {ex.Message}");
         }
 
-        return FallbackRandomItems(catalogue);
+        return FallbackRandomItems(catalogue, requestedItemCount);
     }
 
     // ── Template generation ───────────────────────────────────────────────────
@@ -204,14 +214,81 @@ public class AiService
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
-    private static List<Item> FallbackRandomItems(IEnumerable<Item> catalogue)
+    private static List<Item> FallbackRandomItems(IEnumerable<Item> catalogue, int? requestedItemCount = null)
     {
         var list = catalogue.ToList();
+        if (list.Count == 0)
+            return new List<Item>();
+
         var rng = new Random();
+        int take = Math.Clamp(requestedItemCount ?? 7, 1, list.Count);
+
         return list.OrderBy(_ => rng.Next())
-                   .Take(7)
+                   .Take(take)
                    .Select(i => new Item(i.Name, rng.Next(1, 4), i.Price))
                    .ToList();
+    }
+
+    private static List<Item> EnforceRequestedItemCount(
+        List<Item> items,
+        IReadOnlyCollection<Item> catalogue,
+        int? requestedItemCount)
+    {
+        if (requestedItemCount is null || requestedItemCount <= 0)
+            return DeduplicateByName(items);
+
+        int target = Math.Min(requestedItemCount.Value, catalogue.Count);
+        var deduped = DeduplicateByName(items);
+
+        if (deduped.Count > target)
+            return deduped.Take(target).ToList();
+
+        if (deduped.Count == target)
+            return deduped;
+
+        var rng = new Random();
+        var existingNames = deduped.Select(i => i.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var extras = catalogue
+            .Where(i => !existingNames.Contains(i.Name))
+            .OrderBy(_ => rng.Next())
+            .Take(target - deduped.Count)
+            .Select(i => new Item(i.Name, rng.Next(1, 4), i.Price));
+
+        deduped.AddRange(extras);
+        return deduped;
+    }
+
+    private static List<Item> DeduplicateByName(IEnumerable<Item> items) =>
+        items.GroupBy(i => i.Name, StringComparer.OrdinalIgnoreCase)
+             .Select(g =>
+             {
+                 var first = g.First();
+                 return new Item(first.Name, g.Sum(x => Math.Max(1, x.Quantity)), first.Price);
+             })
+             .ToList();
+
+    private static int? TryExtractRequestedItemCount(string userRequest)
+    {
+        if (string.IsNullOrWhiteSpace(userRequest))
+            return null;
+
+        var digitMatch = Regex.Match(userRequest, @"\b([1-9]|10)\b");
+        if (digitMatch.Success && int.TryParse(digitMatch.Groups[1].Value, out int parsed))
+            return parsed;
+
+        var words = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["one"] = 1, ["two"] = 2, ["three"] = 3, ["four"] = 4, ["five"] = 5,
+            ["six"] = 6, ["seven"] = 7, ["eight"] = 8, ["nine"] = 9, ["ten"] = 10
+        };
+
+        foreach (var kv in words)
+        {
+            if (Regex.IsMatch(userRequest, $@"\b{kv.Key}\b", RegexOptions.IgnoreCase))
+                return kv.Value;
+        }
+
+        return null;
     }
 
     private static string StripCodeFences(string text)
