@@ -25,6 +25,12 @@ public class AiService
 {
     private readonly ChatClient? _client;
     private readonly string? _provider;
+    private static readonly Regex RequestedItemCountRegex = new(@"\b(?<count>10|[1-9])\b", RegexOptions.Compiled);
+    private static readonly Dictionary<string, int> NumberWords = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["one"] = 1, ["two"] = 2, ["three"] = 3, ["four"] = 4, ["five"] = 5,
+        ["six"] = 6, ["seven"] = 7, ["eight"] = 8, ["nine"] = 9, ["ten"] = 10
+    };
 
     private static readonly JsonSerializerOptions JsonOpts = new()
     {
@@ -220,7 +226,7 @@ public class AiService
         if (list.Count == 0)
             return new List<Item>();
 
-        var rng = new Random();
+        var rng = Random.Shared;
         int take = Math.Clamp(requestedItemCount ?? 7, 1, list.Count);
 
         return list.OrderBy(_ => rng.Next())
@@ -246,7 +252,7 @@ public class AiService
         if (deduped.Count == target)
             return deduped;
 
-        var rng = new Random();
+        var rng = Random.Shared;
         var existingNames = deduped.Select(i => i.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
         var extras = catalogue
             .Where(i => !existingNames.Contains(i.Name))
@@ -272,20 +278,18 @@ public class AiService
         if (string.IsNullOrWhiteSpace(userRequest))
             return null;
 
-        var digitMatch = Regex.Match(userRequest, @"\b([1-9]|10)\b");
-        if (digitMatch.Success && int.TryParse(digitMatch.Groups[1].Value, out int parsed))
+        var digitMatch = RequestedItemCountRegex.Match(userRequest);
+        if (digitMatch.Success && int.TryParse(digitMatch.Groups["count"].Value, out int parsed))
             return parsed;
 
-        var words = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
-        {
-            ["one"] = 1, ["two"] = 2, ["three"] = 3, ["four"] = 4, ["five"] = 5,
-            ["six"] = 6, ["seven"] = 7, ["eight"] = 8, ["nine"] = 9, ["ten"] = 10
-        };
+        var tokens = userRequest.Split(
+            [' ', '\t', '\r', '\n', ',', '.', ';', ':', '!', '?', '-', '_', '/', '\\', '|'],
+            StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
-        foreach (var kv in words)
+        foreach (var token in tokens)
         {
-            if (Regex.IsMatch(userRequest, $@"\b{kv.Key}\b", RegexOptions.IgnoreCase))
-                return kv.Value;
+            if (NumberWords.TryGetValue(token, out int value))
+                return value;
         }
 
         return null;
