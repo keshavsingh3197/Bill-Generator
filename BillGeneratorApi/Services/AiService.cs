@@ -293,7 +293,7 @@ public class AiService
         if (digitMatch.Success && int.TryParse(digitMatch.Groups["count"].Value, out int parsed) && parsed > 0)
             return parsed;
 
-        var tokens = userRequest.Split(TokenDelimiters, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var tokens = userRequest.Split(TokenDelimiters, StringSplitOptions.RemoveEmptyEntries);
 
         foreach (var token in tokens)
         {

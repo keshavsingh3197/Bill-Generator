@@ -11,7 +11,6 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatTabsModule } from '@angular/material/tabs';
-import { MatChipsModule } from '@angular/material/chips';
 import { ApiService } from '../../services/api.service';
 import { Item, BillTemplate } from '../../models/models';
 
@@ -23,7 +22,7 @@ import { Item, BillTemplate } from '../../models/models';
     MatCardModule, MatButtonModule, MatIconModule,
     MatFormFieldModule, MatInputModule,
     MatTableModule, MatProgressSpinnerModule, MatSnackBarModule,
-    MatDividerModule, MatTabsModule, MatChipsModule
+    MatDividerModule, MatTabsModule
   ],
   template: `
     <div class="page-container">
