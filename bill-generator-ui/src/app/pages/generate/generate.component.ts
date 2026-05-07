@@ -291,8 +291,9 @@ export class GenerateComponent implements OnInit {
 
     this.suggestingItems = true;
     this.api.aiSuggestItems(request).subscribe({
-      next: items => {
+      next: response => {
         this.suggestingItems = false;
+        const items = response.items ?? [];
         if (!items.length) {
           this.snack.open('AI did not return any items.', 'OK', { duration: 3000 });
           return;
@@ -300,7 +301,9 @@ export class GenerateComponent implements OnInit {
 
         this.items = [...this.items, ...items.map(i => ({ ...i }))];
         this.aiItemRequest = '';
-        this.snack.open(`Added ${items.length} item(s) using AI.`, 'OK', { duration: 3000 });
+        const via = response.source === 'fallback' ? 'fallback' : 'AI';
+        const note = response.note ? ` ${response.note}` : '';
+        this.snack.open(`Added ${items.length} item(s) via ${via}.${note}`, 'OK', { duration: 3500 });
       },
       error: () => {
         this.suggestingItems = false;

@@ -358,10 +358,14 @@ export class AiAssistantComponent implements OnInit {
   suggestItems() {
     this.suggestingItems = true;
     this.api.aiSuggestItems(this.itemRequest).subscribe({
-      next: items => {
+      next: response => {
+        const items = response.items ?? [];
         this.suggestingItems = false;
         this.suggestedItems = items;
         this.suggestedTotal = items.reduce((s, i) => s + i.quantity * i.price, 0);
+        if (response.source === 'fallback' && response.note) {
+          this.snack.open(response.note, 'OK', { duration: 3500 });
+        }
       },
       error: () => {
         this.suggestingItems = false;

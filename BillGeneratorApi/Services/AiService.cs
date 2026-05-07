@@ -26,6 +26,8 @@ public class AiService
     private readonly ChatClient? _client;
     private readonly string? _provider;
     private static readonly Regex RequestedItemCountRegex = new(@"\b(?<count>\d+)\b", RegexOptions.Compiled);
+    private static readonly Regex SnackIntentRegex = new(@"\b(snack|snacks|starter|starters|chaat)\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+    private static readonly Regex MainIntentRegex = new(@"\b(main|maincourse|curry|curries|roti|naan|rice|biryani|dal|paneer)\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
     private static readonly char[] TokenDelimiters =
         [' ', '\t', '\r', '\n', ',', '.', ';', ':', '!', '?', '-', '_', '/', '\\', '|'];
     private static readonly Dictionary<string, int> NumberWords = new(StringComparer.OrdinalIgnoreCase)
@@ -79,18 +81,22 @@ public class AiService
     /// Returns items with quantities assigned; falls back to a random selection
     /// if the API is unavailable.
     /// </summary>
-    public async Task<List<Item>> SuggestItemsAsync(
+    public async Task<AiItemSuggestionResult> SuggestItemsAsync(
         string userRequest, IEnumerable<Item> catalogue)
     {
         int? requestedItemCount = TryExtractRequestedItemCount(userRequest);
+        var (cataloguePool, scopeNote) = SelectCataloguePool(userRequest, catalogue);
 
         if (_client is null)
         {
             Console.WriteLine("[AI] No API key – using random item selection.");
-            return FallbackRandomItems(catalogue, requestedItemCount);
+            return new AiItemSuggestionResult(
+                FallbackRandomItems(cataloguePool, requestedItemCount),
+                "fallback",
+                AppendNote(scopeNote, "AI unavailable; used fallback selection."));
         }
 
-        var catalogueList = catalogue.ToList();
+        var catalogueList = cataloguePool.ToList();
         string catalogueJson = JsonSerializer.Serialize(
             catalogueList.Select(i => new { i.Name, i.Price }), JsonOpts);
 
@@ -137,14 +143,17 @@ public class AiService
             result = EnforceRequestedItemCount(result, catalogueList, requestedItemCount);
 
             if (result.Count > 0)
-                return result;
+                return new AiItemSuggestionResult(result, "ai", scopeNote);
         }
         catch (Exception ex)
         {
             Console.WriteLine($"[AI] Item suggestion error: {ex.Message}");
         }
 
-        return FallbackRandomItems(catalogue, requestedItemCount);
+        return new AiItemSuggestionResult(
+            FallbackRandomItems(cataloguePool, requestedItemCount),
+            "fallback",
+            AppendNote(scopeNote, "AI response parsing failed; used fallback selection."));
     }
 
     // ── Template generation ───────────────────────────────────────────────────
@@ -295,6 +304,35 @@ public class AiService
         return null;
     }
 
+    private static (IEnumerable<Item> Pool, string? Note) SelectCataloguePool(string userRequest, IEnumerable<Item> catalogue)
+    {
+        var baseList = catalogue.ToList();
+        if (baseList.Count == 0)
+            return (baseList, null);
+
+        bool wantsSnacks = SnackIntentRegex.IsMatch(userRequest);
+        bool wantsMain = MainIntentRegex.IsMatch(userRequest);
+
+        if (wantsSnacks && !wantsMain)
+        {
+            var snackNames = ItemCatalogue.Snacks.Select(i => i.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var snacks = baseList.Where(i => snackNames.Contains(i.Name)).ToList();
+            if (snacks.Count > 0) return (snacks, "Interpreted request as snacks-focused.");
+        }
+
+        if (wantsMain && !wantsSnacks)
+        {
+            var mainNames = ItemCatalogue.MainCourse.Select(i => i.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var mains = baseList.Where(i => mainNames.Contains(i.Name)).ToList();
+            if (mains.Count > 0) return (mains, "Interpreted request as main-course-focused.");
+        }
+
+        return (baseList, null);
+    }
+
+    private static string? AppendNote(string? existing, string extra) =>
+        string.IsNullOrWhiteSpace(existing) ? extra : $"{existing} {extra}";
+
     private static string StripCodeFences(string text)
     {
         if (text.StartsWith("```"))
@@ -316,3 +354,5 @@ public class AiService
         [JsonPropertyName("price")] public double Price { get; set; }
     }
 }
+
+public sealed record AiItemSuggestionResult(List<Item> Items, string Source, string? Note);

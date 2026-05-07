@@ -5,6 +5,12 @@ export interface Item {
   amount?: number;
 }
 
+export interface AiSuggestItemsResponse {
+  items: Item[];
+  source: 'ai' | 'fallback';
+  note?: string;
+}
+
 export interface BillTemplate {
   name: string;
   description: string;
