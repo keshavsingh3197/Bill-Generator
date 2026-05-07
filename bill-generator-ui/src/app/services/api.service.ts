@@ -57,8 +57,8 @@ export class ApiService {
   }
 
   // ── AI ────────────────────────────────────────────────────────────────────
-  getAiStatus(): Observable<{ available: boolean }> {
-    return this.http.get<{ available: boolean }>(`${this.base}/api/ai/status`);
+  getAiStatus(): Observable<{ available: boolean; provider?: string }> {
+    return this.http.get<{ available: boolean; provider?: string }>(`${this.base}/api/ai/status`);
   }
 
   aiSuggestItems(request: string): Observable<Item[]> {

@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.ClientModel;
 using BillGeneratorApi.Models;
 using OpenAI;
 using OpenAI.Chat;
@@ -8,16 +9,21 @@ using OpenAI.Chat;
 namespace BillGeneratorApi.Services;
 
 /// <summary>
-/// Uses the OpenAI Chat Completions API to:
+/// Uses a Chat Completions API to:
 /// <list type="bullet">
 ///   <item>Suggest menu items from a natural-language description.</item>
 ///   <item>Generate a custom <see cref="BillTemplate"/> from a style description.</item>
 /// </list>
-/// Set the environment variable <c>OPENAI_API_KEY</c> before using AI features.
+/// Supported providers (checked in priority order):
+/// <list type="bullet">
+///   <item><c>GEMINI_API_KEY</c> – Google Gemini (free tier, gemini-2.0-flash via OpenAI-compat endpoint)</item>
+///   <item><c>OPENAI_API_KEY</c> – OpenAI gpt-4o-mini</item>
+/// </list>
 /// </summary>
 public class AiService
 {
     private readonly ChatClient? _client;
+    private readonly string? _provider;
 
     private static readonly JsonSerializerOptions JsonOpts = new()
     {
@@ -26,14 +32,33 @@ public class AiService
     };
 
     public bool IsAvailable => _client is not null;
+    public string? Provider => _provider;
 
     public AiService()
     {
-        string? apiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY");
-        if (!string.IsNullOrWhiteSpace(apiKey))
+        // 1. Try Gemini first – free tier, no credit card required
+        string? geminiKey = Environment.GetEnvironmentVariable("GEMINI_API_KEY");
+        if (!string.IsNullOrWhiteSpace(geminiKey))
         {
-            var openAi = new OpenAIClient(apiKey);
+            var options = new OpenAIClientOptions
+            {
+                Endpoint = new Uri("https://generativelanguage.googleapis.com/v1beta/openai/")
+            };
+            var geminiClient = new OpenAIClient(new ApiKeyCredential(geminiKey), options);
+            _client = geminiClient.GetChatClient("gemini-2.0-flash");
+            _provider = "Gemini";
+            Console.WriteLine("[AI] Using Google Gemini (gemini-2.0-flash).");
+            return;
+        }
+
+        // 2. Fall back to OpenAI
+        string? openAiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY");
+        if (!string.IsNullOrWhiteSpace(openAiKey))
+        {
+            var openAi = new OpenAIClient(openAiKey);
             _client = openAi.GetChatClient("gpt-4o-mini");
+            _provider = "OpenAI";
+            Console.WriteLine("[AI] Using OpenAI (gpt-4o-mini).");
         }
     }
 
