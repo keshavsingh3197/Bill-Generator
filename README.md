@@ -5,6 +5,7 @@ A full-stack bill receipt generator for an Indian street-food restaurant.
 | Layer | Technology | Deployment |
 |-------|-----------|------------|
 | Frontend | Angular 19 + Angular Material | GitHub Pages |
+| Android app | Capacitor 6 (wraps Angular) | Google Play Store (CI/CD) |
 | Backend | ASP.NET Core 10 Web API | Render.com (Docker) |
 | PDF engine | iText7 | (bundled) |
 | AI | Google Gemini (free) / OpenAI gpt-4o-mini | (optional) |
@@ -38,8 +39,9 @@ Bill-Generator/
 │       └── models/         ← TypeScript interfaces
 ├── render.yaml             ← Render.com deployment config
 └── .github/workflows/
-    ├── deploy-frontend.yml ← CI/CD → GitHub Pages
-    └── build-api.yml       ← CI: build + Docker test
+    ├── deploy-frontend.yml  ← CI/CD → GitHub Pages
+    ├── build-api.yml        ← CI: build + Docker test
+    └── deploy-android.yml   ← CI/CD → Google Play Store (internal track)
 ```
 
 ---
@@ -138,6 +140,53 @@ Enable GitHub Pages in the repository settings:
    - `OPENAI_API_KEY` as an alternative AI provider (paid)
    - `MONGODB_CONNECTION_STRING` and `MONGODB_DATABASE` for MongoDB-backed custom templates
 5. After deployment, copy the Render service URL and update `bill-generator-ui/src/environments/environment.prod.ts`
+
+### Android → Google Play Store
+
+The workflow `.github/workflows/deploy-android.yml` builds a signed Android App Bundle (`.aab`) via [Capacitor](https://capacitorjs.com/) and publishes it to the **internal track** of the Google Play Console on every push to `main`/`master`.
+
+#### One-time setup
+
+**1. Register the app on Google Play Console**
+- Create a new app with package name `com.billgenerator.app` (must match `appId` in `bill-generator-ui/capacitor.config.ts`)
+- Complete the store listing, content rating, and pricing before the first upload
+
+**2. Create a release keystore** (keep this file safe – you need the same key for all future releases)
+```bash
+keytool -genkey -v \
+  -keystore release.keystore \
+  -alias my-key-alias \
+  -keyalg RSA -keysize 2048 \
+  -validity 10000
+```
+
+**3. Encode the keystore as base64**
+```bash
+# Linux
+base64 -w 0 release.keystore
+
+# macOS
+base64 -i release.keystore | tr -d '\n'
+```
+
+**4. Create a Play Store service account**
+1. Google Play Console → **Setup → API access**
+2. Link to (or create) a Google Cloud project
+3. Click **Create new service account** → follow the Google Cloud Console link
+4. Grant the service account the **Release manager** role in Play Console
+5. Download the JSON key for the service account
+
+**5. Add GitHub Secrets** (Settings → Secrets and variables → Actions):
+
+| Secret name | Value |
+|---|---|
+| `KEYSTORE_BASE64` | Base64 string from step 3 |
+| `KEYSTORE_PASSWORD` | Keystore password chosen in step 2 |
+| `KEY_ALIAS` | Key alias chosen in step 2 (e.g. `my-key-alias`) |
+| `KEY_PASSWORD` | Key password chosen in step 2 |
+| `PLAY_STORE_SERVICE_ACCOUNT_JSON` | Full JSON content from the service-account key file (step 4) |
+
+Once the secrets are in place, push any change to `main`/`master` (or trigger the workflow manually via **Actions → Deploy Android to Google Play → Run workflow**) to publish a new internal-track release.
 
 ---
 

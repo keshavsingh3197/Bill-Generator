@@ -10,6 +10,9 @@ bill-generator-ui/node_modules/
 bill-generator-ui/dist/
 bill-generator-ui/.angular/
 
+## Capacitor Android (generated in CI; do not commit generated native project)
+bill-generator-ui/android/
+
 ## OS
 .DS_Store
 Thumbs.db
