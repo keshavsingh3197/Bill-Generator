@@ -23,17 +23,10 @@ public class PdfGenerator
 
     public PdfGenerator()
     {
-        // Try to find the bundled NotoSansMono fonts (optional – falls back to Courier).
-        string baseDir = AppContext.BaseDirectory;
-
-        // Walk up a few levels to find the Fonts directory (works for both
-        // "dotnet run" and published executables).
-        for (int up = 0; up <= 5; up++)
+        // Try to find NotoSansMono fonts (optional – falls back to Courier).
+        var candidates = BuildFontCandidates();
+        foreach (var candidate in candidates)
         {
-            string candidate = SysPath.GetFullPath(
-                SysPath.Combine(baseDir, string.Concat(Enumerable.Repeat("../", up)),
-                    "Fonts", "noto-sans-mono", "static", "NotoSansMono"));
-
             string rPath = SysPath.Combine(candidate, "NotoSansMono-Regular.ttf");
             string bPath = SysPath.Combine(candidate, "NotoSansMono-Bold.ttf");
 
@@ -253,5 +246,30 @@ public class PdfGenerator
         return PdfFontFactory.CreateFont(
             bold ? iText.IO.Font.Constants.StandardFonts.COURIER_BOLD
                  : iText.IO.Font.Constants.StandardFonts.COURIER);
+    }
+
+    private static IEnumerable<string> BuildFontCandidates()
+    {
+        string baseDir = AppContext.BaseDirectory;
+        var candidates = new List<string>();
+
+        // Project-bundled location (works for dotnet run + published apps).
+        for (int up = 0; up <= 5; up++)
+        {
+            candidates.Add(SysPath.GetFullPath(
+                SysPath.Combine(baseDir, string.Concat(Enumerable.Repeat("../", up)),
+                    "Fonts", "noto-sans-mono", "static", "NotoSansMono")));
+        }
+
+        // Linux system paths (used in Docker/runtime images).
+        candidates.Add("/usr/share/fonts/truetype/noto");
+        candidates.Add("/usr/share/fonts/opentype/noto");
+
+        // Optional env override for custom deployments.
+        string? customFontDir = Environment.GetEnvironmentVariable("NOTO_SANS_MONO_DIR");
+        if (!string.IsNullOrWhiteSpace(customFontDir))
+            candidates.Add(customFontDir);
+
+        return candidates;
     }
 }

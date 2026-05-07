@@ -10,3 +10,7 @@ services:
         value: http://0.0.0.0:8080
       - key: OPENAI_API_KEY
         sync: false   # set this in the Render dashboard
+      - key: MONGODB_CONNECTION_STRING
+        sync: false   # optional: enables MongoDB-backed custom templates
+      - key: MONGODB_DATABASE
+        value: BillGenerator

@@ -1,6 +1,9 @@
 using System.Text.Json;
 using BillGeneratorApi.Models;
 using BillGeneratorApi.Templates;
+using MongoDB.Bson;
+using MongoDB.Bson.Serialization.Attributes;
+using MongoDB.Driver;
 
 namespace BillGeneratorApi.Services;
 
@@ -17,12 +20,31 @@ public class TemplateManager
     };
 
     private readonly string _customDir;
+    private readonly IMongoCollection<TemplateRecord>? _templateCollection;
 
     public TemplateManager(string? customTemplatesDirectory = null)
     {
         _customDir = customTemplatesDirectory
             ?? Path.Combine(AppContext.BaseDirectory, "CustomTemplates");
         Directory.CreateDirectory(_customDir);
+
+        string? mongoConnectionString = Environment.GetEnvironmentVariable("MONGODB_CONNECTION_STRING");
+        if (!string.IsNullOrWhiteSpace(mongoConnectionString))
+        {
+            try
+            {
+                string dbName = Environment.GetEnvironmentVariable("MONGODB_DATABASE") ?? "BillGenerator";
+                string collectionName = Environment.GetEnvironmentVariable("MONGODB_TEMPLATES_COLLECTION") ?? "templates";
+
+                var mongoClient = new MongoClient(mongoConnectionString);
+                var database = mongoClient.GetDatabase(dbName);
+                _templateCollection = database.GetCollection<TemplateRecord>(collectionName);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[warn] MongoDB init failed, falling back to file storage: {ex.Message}");
+            }
+        }
     }
 
     // ── Predefined ────────────────────────────────────────────────────────────
@@ -33,6 +55,12 @@ public class TemplateManager
 
     public List<BillTemplate> GetCustom()
     {
+        if (_templateCollection is not null)
+        {
+            var docs = _templateCollection.Find(_ => true).ToList();
+            return docs.Select(ToTemplate).ToList();
+        }
+
         var result = new List<BillTemplate>();
         foreach (string file in Directory.GetFiles(_customDir, "*.json"))
         {
@@ -70,6 +98,14 @@ public class TemplateManager
         if (template.IsBuiltIn)
             throw new InvalidOperationException("Cannot overwrite a built-in template.");
 
+        if (_templateCollection is not null)
+        {
+            var doc = TemplateRecord.FromTemplate(template);
+            var filter = Builders<TemplateRecord>.Filter.Eq(t => t.NameKey, doc.NameKey);
+            _templateCollection.ReplaceOne(filter, doc, new ReplaceOptions { IsUpsert = true });
+            return;
+        }
+
         string path = TemplatePath(template.Name);
         if (!IsPathInsideCustomDir(path))
             throw new InvalidOperationException("Template name results in an invalid file path.");
@@ -89,6 +125,13 @@ public class TemplateManager
 
     public bool Delete(string name)
     {
+        if (_templateCollection is not null)
+        {
+            string key = NormalizeName(name);
+            var filter = Builders<TemplateRecord>.Filter.Eq(t => t.NameKey, key);
+            return _templateCollection.DeleteOne(filter).DeletedCount > 0;
+        }
+
         string path = TemplatePath(name);
         // Verify the resolved path is still within the custom templates directory
         // to prevent path traversal.
@@ -123,7 +166,35 @@ public class TemplateManager
     private static string SanitizeName(string name) =>
         string.Concat(name.Split(Path.GetInvalidFileNameChars()));
 
+    private static string NormalizeName(string name) =>
+        SanitizeName(name).Trim().ToLowerInvariant();
+
     private static BillTemplate Clone(BillTemplate t) =>
         JsonSerializer.Deserialize<BillTemplate>(
             JsonSerializer.Serialize(t, JsonOpts), JsonOpts)!;
+
+    private static BillTemplate ToTemplate(TemplateRecord record)
+    {
+        var t = record.Template;
+        t.IsBuiltIn = false;
+        return t;
+    }
+
+    private sealed class TemplateRecord
+    {
+        [BsonId] public ObjectId Id { get; set; }
+        [BsonElement("nameKey")] public string NameKey { get; set; } = string.Empty;
+        [BsonElement("template")] public BillTemplate Template { get; set; } = new();
+
+        public static TemplateRecord FromTemplate(BillTemplate t)
+        {
+            var copy = Clone(t);
+            copy.IsBuiltIn = false;
+            return new TemplateRecord
+            {
+                NameKey = NormalizeName(copy.Name),
+                Template = copy
+            };
+        }
+    }
 }

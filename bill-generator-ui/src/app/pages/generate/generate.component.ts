@@ -68,6 +68,26 @@ import { BillTemplate, Item } from '../../models/models';
                 <h3>Items <button mat-icon-button color="primary" (click)="addItem()"><mat-icon>add</mat-icon></button></h3>
                 <p class="hint">Leave items empty to auto-generate from the date.</p>
 
+                <div class="ai-row">
+                  <mat-form-field appearance="outline" class="ai-field">
+                    <mat-label>Add items with AI</mat-label>
+                    <input
+                      matInput
+                      [(ngModel)]="aiItemRequest"
+                      placeholder="e.g. family dinner for 3 with starters and paneer curry" />
+                  </mat-form-field>
+                  <button
+                    mat-stroked-button
+                    color="accent"
+                    (click)="addItemsUsingAi()"
+                    [disabled]="!aiAvailable || suggestingItems || !aiItemRequest.trim()">
+                    <mat-spinner diameter="20" *ngIf="suggestingItems"></mat-spinner>
+                    <mat-icon *ngIf="!suggestingItems">auto_awesome</mat-icon>
+                    {{ suggestingItems ? 'Adding...' : 'Add with AI' }}
+                  </button>
+                </div>
+                <p class="hint" *ngIf="!aiAvailable">Set OPENAI_API_KEY on backend to enable AI item suggestions.</p>
+
                 <table mat-table [dataSource]="items" *ngIf="items.length" class="items-table">
                   <ng-container matColumnDef="name">
                     <th mat-header-cell *matHeaderCellDef>Item</th>
@@ -178,6 +198,8 @@ import { BillTemplate, Item } from '../../models/models';
     .form-row { display: flex; flex-wrap: wrap; gap: 16px; }
     .form-row mat-form-field { flex: 1; min-width: 180px; }
     .items-table { width: 100%; margin: 12px 0; }
+    .ai-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin: 8px 0 12px; }
+    .ai-field { flex: 1; min-width: 260px; }
     .cell-field { width: 100%; }
     .cell-small { max-width: 90px; }
     .total-row { text-align: right; padding: 8px; font-size: 1.1rem; }
@@ -194,6 +216,9 @@ export class GenerateComponent implements OnInit {
   itemCols = ['name', 'qty', 'price', 'amount', 'action'];
   generating = false;
   generatingRange = false;
+  aiAvailable = false;
+  suggestingItems = false;
+  aiItemRequest = '';
   rangeResults: any[] = [];
 
   today = new Date().toISOString().split('T')[0];
@@ -216,6 +241,10 @@ export class GenerateComponent implements OnInit {
 
   ngOnInit() {
     this.api.getTemplates().subscribe(t => this.templates = t);
+    this.api.getAiStatus().subscribe({
+      next: r => this.aiAvailable = r.available,
+      error: () => this.aiAvailable = false
+    });
   }
 
   addItem() {
@@ -250,6 +279,30 @@ export class GenerateComponent implements OnInit {
       error: () => {
         this.generating = false;
         this.snack.open('Failed to generate bill. Is the backend running?', 'OK', { duration: 5000 });
+      }
+    });
+  }
+
+  addItemsUsingAi() {
+    const request = this.aiItemRequest.trim();
+    if (!request || !this.aiAvailable) return;
+
+    this.suggestingItems = true;
+    this.api.aiSuggestItems(request).subscribe({
+      next: items => {
+        this.suggestingItems = false;
+        if (!items.length) {
+          this.snack.open('AI did not return any items.', 'OK', { duration: 3000 });
+          return;
+        }
+
+        this.items = [...this.items, ...items.map(i => ({ ...i }))];
+        this.aiItemRequest = '';
+        this.snack.open(`Added ${items.length} item(s) using AI.`, 'OK', { duration: 3000 });
+      },
+      error: () => {
+        this.suggestingItems = false;
+        this.snack.open('AI request failed.', 'OK', { duration: 3000 });
       }
     });
   }
