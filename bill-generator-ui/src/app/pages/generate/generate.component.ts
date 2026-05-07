@@ -65,7 +65,13 @@ import { BillTemplate, Item } from '../../models/models';
                   </mat-form-field>
                 </div>
 
-                <h3>Items <button mat-icon-button color="primary" (click)="addItem()"><mat-icon>add</mat-icon></button></h3>
+                <div class="items-heading">
+                  <h3>Items <button mat-icon-button color="primary" (click)="addItem()"><mat-icon>add</mat-icon></button></h3>
+                  <span *ngIf="lastSuggestionSource" class="source-badge" [class.badge-ai]="lastSuggestionSource === 'ai'" [class.badge-fallback]="lastSuggestionSource === 'fallback'" [title]="lastSuggestionNote || ''">
+                    <mat-icon>{{ lastSuggestionSource === 'ai' ? 'auto_awesome' : 'shuffle' }}</mat-icon>
+                    {{ lastSuggestionSource === 'ai' ? 'AI-selected' : 'Auto-selected' }}
+                  </span>
+                </div>
                 <p class="hint">Leave items empty to auto-generate from the date.</p>
 
                 <div class="ai-row">
@@ -200,6 +206,16 @@ import { BillTemplate, Item } from '../../models/models';
     .form-row { display: flex; flex-wrap: wrap; gap: 16px; }
     .form-row mat-form-field { flex: 1; min-width: 180px; }
     .items-table { width: 100%; margin: 12px 0; }
+    .items-heading { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .items-heading h3 { margin: 0; }
+    .source-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 3px 10px; border-radius: 20px;
+      font-size: 0.78rem; font-weight: 600; cursor: default;
+    }
+    .source-badge mat-icon { font-size: 15px; height: 15px; width: 15px; }
+    .badge-ai       { background: #ede9fe; color: #5b21b6; border: 1px solid #c4b5fd; }
+    .badge-fallback { background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
     .ai-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin: 8px 0 12px; }
     .ai-field { flex: 1; min-width: 260px; }
     .cell-field { width: 100%; }
@@ -221,6 +237,8 @@ export class GenerateComponent implements OnInit {
   aiAvailable = false;
   suggestingItems = false;
   aiItemRequest = '';
+  lastSuggestionSource: 'ai' | 'fallback' | null = null;
+  lastSuggestionNote: string | null = null;
   rangeResults: any[] = [];
 
   today = new Date().toISOString().split('T')[0];
@@ -255,6 +273,10 @@ export class GenerateComponent implements OnInit {
 
   removeItem(i: number) {
     this.items.splice(i, 1);
+    if (!this.items.length) {
+      this.lastSuggestionSource = null;
+      this.lastSuggestionNote = null;
+    }
   }
 
   getTotal(): number {
@@ -301,6 +323,8 @@ export class GenerateComponent implements OnInit {
 
         this.items = [...this.items, ...items.map(i => ({ ...i }))];
         this.aiItemRequest = '';
+        this.lastSuggestionSource = response.source;
+        this.lastSuggestionNote = response.note ?? null;
         const via = response.source === 'fallback' ? 'fallback' : 'AI';
         const note = response.note ? ` ${response.note}` : '';
         this.snack.open(`Added ${items.length} item(s) via ${via}.${note}`, 'OK', { duration: 3500 });
