@@ -108,6 +108,7 @@ export OPENAI_API_KEY=sk-...  # before running the backend
 ```bash
 export MONGODB_CONNECTION_STRING="mongodb+srv://..."
 export MONGODB_DATABASE="BillGenerator"
+export MONGODB_TEMPLATES_COLLECTION="templates"
 ```
 
 ---
@@ -235,6 +236,11 @@ The PDF generator prefers **NotoSansMono** (for proper ₹ rendering). It auto-d
 - a custom path from `NOTO_SANS_MONO_DIR`.
 
 If none are available, it falls back to Courier.
+
+You can override the auto-detected font location with:
+```bash
+export NOTO_SANS_MONO_DIR="/path/to/font/folder"
+```
 
 To bundle NotoSansMono manually, place the `.ttf` files at:
 

@@ -14,3 +14,7 @@ services:
         sync: false   # optional: enables MongoDB-backed custom templates
       - key: MONGODB_DATABASE
         value: BillGenerator
+      - key: MONGODB_TEMPLATES_COLLECTION
+        value: templates
+      - key: NOTO_SANS_MONO_DIR
+        sync: false   # optional custom path to NotoSansMono-Regular/Bold.ttf
