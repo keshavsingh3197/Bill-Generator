@@ -86,7 +86,9 @@ import { BillTemplate, Item } from '../../models/models';
                     {{ suggestingItems ? 'Adding...' : 'Add with AI' }}
                   </button>
                 </div>
-                <p class="hint" *ngIf="!aiAvailable">Set OPENAI_API_KEY on backend to enable AI item suggestions.</p>
+                <p class="hint" *ngIf="!aiAvailable">
+                  Set <code>GEMINI_API_KEY</code> (free) or <code>OPENAI_API_KEY</code> on the backend to enable AI item suggestions.
+                </p>
 
                 <table mat-table [dataSource]="items" *ngIf="items.length" class="items-table">
                   <ng-container matColumnDef="name">

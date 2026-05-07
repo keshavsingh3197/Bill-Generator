@@ -7,7 +7,7 @@ A full-stack bill receipt generator for an Indian street-food restaurant.
 | Frontend | Angular 19 + Angular Material | GitHub Pages |
 | Backend | ASP.NET Core 10 Web API | Render.com (Docker) |
 | PDF engine | iText7 | (bundled) |
-| AI | OpenAI gpt-4o-mini | (optional) |
+| AI | Google Gemini (free) / OpenAI gpt-4o-mini | (optional) |
 
 ---
 
@@ -76,9 +76,11 @@ Bill-Generator/
 ### Custom Templates
 Create, clone, and edit templates from the UI. Full control over shop info, page size, fonts, dividers, and which sections to show.
 
-### AI Features (requires `OPENAI_API_KEY`)
+### AI Features (requires `GEMINI_API_KEY` or `OPENAI_API_KEY`)
 - **Item Suggestion**: describe an order → AI picks items and quantities
 - **Template Generation**: describe a style → AI creates a full template
+
+> **Tip – Free AI:** Get a free Google Gemini API key (no credit card) at [aistudio.google.com/apikey](https://aistudio.google.com/apikey) and set `GEMINI_API_KEY` on the backend. OpenAI (`OPENAI_API_KEY`) is also supported as a fallback.
 
 ---
 
@@ -101,7 +103,11 @@ ng serve
 
 ### AI Features
 ```bash
-export OPENAI_API_KEY=sk-...  # before running the backend
+# Option 1: Google Gemini (free – recommended)
+export GEMINI_API_KEY=AIza...   # Get free key at https://aistudio.google.com/apikey
+
+# Option 2: OpenAI (paid)
+export OPENAI_API_KEY=sk-...    # before running the backend
 ```
 
 ### MongoDB (optional, for dynamic custom templates)
@@ -128,7 +134,8 @@ Enable GitHub Pages in the repository settings:
 2. Connect the repository
 3. Create a new **Web Service** using the `render.yaml` configuration
 4. Set optional environment variables in the Render dashboard:
-   - `OPENAI_API_KEY` for AI features
+   - `GEMINI_API_KEY` for AI features (free – get at [aistudio.google.com/apikey](https://aistudio.google.com/apikey))
+   - `OPENAI_API_KEY` as an alternative AI provider (paid)
    - `MONGODB_CONNECTION_STRING` and `MONGODB_DATABASE` for MongoDB-backed custom templates
 5. After deployment, copy the Render service URL and update `bill-generator-ui/src/environments/environment.prod.ts`
 

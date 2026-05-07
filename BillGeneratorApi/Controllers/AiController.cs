@@ -42,9 +42,9 @@ public class AiController : ControllerBase
         return Ok(template);
     }
 
-    /// <summary>GET /api/ai/status – reports whether the AI is available.</summary>
+    /// <summary>GET /api/ai/status – reports whether the AI is available and which provider is active.</summary>
     [HttpGet("status")]
-    public IActionResult Status() => Ok(new { available = _ai.IsAvailable });
+    public IActionResult Status() => Ok(new { available = _ai.IsAvailable, provider = _ai.Provider });
 }
 
 public record AiItemRequest(string Request);
